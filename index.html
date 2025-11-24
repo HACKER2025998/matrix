@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MatrixPro - Calculateur de Matrices Avancé</title>
+    <!-- Chargement de Tailwind CSS pour un style moderne et responsif -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Style de base pour les inputs de matrice */
+        .matrix-input {
+            width: 3rem;
+            height: 3rem;
+            text-align: center;
+            border: 1px solid #d1d5db;
+            transition: all 0.2s;
+        }
+        .matrix-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5);
+        }
+        /* Masquer les flèches des inputs numériques */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .matrix-grid {
+            display: grid;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col items-center justify-center p-4">
+
+<!-- Écran de Chargement/Initialisation -->
+<div id="loading-screen" class="flex flex-col items-center justify-center h-full w-full absolute bg-gray-50 z-50">
+    <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-blue-500 border-gray-200"></div>
+    <p class="mt-4 text-gray-600">Initialisation de l'application et vérification de l'authentification...</p>
+</div>
+
+<!-- Page de Connexion (Visible par défaut) -->
+<div id="login-screen" class="hidden max-w-lg w-full bg-white shadow-xl rounded-2xl p-8 transform transition duration-500 hover:shadow-2xl">
+    <h1 class="text-3xl font-bold text-center text-blue-700 mb-6">Bienvenue sur MatrixPro</h1>
+    <p class="text-gray-600 text-center mb-8">Veuillez vous connecter avec votre compte Google pour accéder au calculateur de matrices avancé. L'accès est réservé aux utilisateurs authentifiés.</p>
+    <button id="google-signin-btn" class="w-full flex items-center justify-center px-4 py-3 border border-transparent text-base font-medium rounded-xl shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+        <svg class="w-5 h-5 mr-3" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M43.611 20.083H42V20H24v8h11.343c-1.894 3.731-5.419 6.357-9.343 6.357-5.553 0-10.057-4.504-10.057-10.057s4.504-10.057 10.057-10.057c3.18 0 5.795 1.401 7.702 3.238l5.967-5.967c-3.64-3.374-8.775-5.485-13.714-5.485C13.204 8 4 17.204 4 28s9.204 20 20.001 20 20.001-9.204 20.001-20c0-1.251-.132-2.47-.389-3.657z" fill="#FFC107"/><path d="M6.357 20.083h17.653V28H6.357z" fill="#4285F4"/><path d="M43.611 20.083H42V20H24v8h11.343c-1.894 3.731-5.419 6.357-9.343 6.357-5.553 0-10.057-4.504-10.057-10.057s4.504-10.057 10.057-10.057c3.18 0 5.795 1.401 7.702 3.238l5.967-5.967c-3.64-3.374-8.775-5.485-13.714-5.485C13.204 8 4 17.204 4 28s9.204 20 20.001 20 20.001-9.204 20.001-20c0-1.251-.132-2.47-.389-3.657z" fill="#4285F4"/><path d="M43.611 20.083c0-1.251-.132-2.47-.389-3.657H24v8h11.343c-.87 3.992-4.484 7.031-8.783 7.031-5.553 0-10.057-4.504-10.057-10.057s4.504-10.057 10.057-10.057c3.18 0 5.795 1.401 7.702 3.238l5.967-5.967c-3.64-3.374-8.775-5.485-13.714-5.485C13.204 8 4 17.204 4 28s9.204 20 20.001 20 20.001-9.204 20.001-20c0-1.251-.132-2.47-.389-3.657z" fill="#34A853"/><path d="M43.611 20.083H42V20H24v8h11.343c-.87 3.992-4.484 7.031-8.783 7.031-5.553 0-10.057-4.504-10.057-10.057s4.504-10.057 10.057-10.057c3.18 0 5.795 1.401 7.702 3.238l5.967-5.967c-3.64-3.374-8.775-5.485-13.714-5.485C13.204 8 4 17.204 4 28s9.204 20 20.001 20 20.001-9.204 20.001-20c0-1.251-.132-2.47-.389-3.657z" fill="#FBBC05"/>
+        </svg>
+        Se connecter avec Google
+    </button>
+    <p id="auth-error-message" class="text-red-500 text-center mt-4 hidden"></p>
+    <p class="text-xs text-gray-400 text-center mt-4">Vos informations seront stockées de manière sécurisée dans la base de données pour l'administration de l'inventaire.</p>
+</div>
+
+<!-- Application de Calcul (Cachée par défaut) -->
+<div id="app-screen" class="hidden w-full max-w-4xl bg-white shadow-2xl rounded-2xl p-8 space-y-8">
+    <header class="flex justify-between items-center border-b pb-4 mb-4">
+        <h1 class="text-3xl font-extrabold text-blue-700">MatrixPro Calcule</h1>
+        <div class="flex items-center space-x-4">
+            <p id="user-info" class="text-sm text-gray-600 hidden md:block"></p>
+            <button id="signout-btn" class="px-3 py-1 bg-red-500 text-white text-sm font-semibold rounded-lg hover:bg-red-600 transition">Déconnexion</button>
+        </div>
+    </header>
+
+    <section id="matrix-inputs" class="space-y-6">
+        <h2 class="text-2xl font-semibold text-gray-800 border-b pb-2">Définir les Matrices A et B</h2>
+
+        <!-- Configuration des Dimensions -->
+        <div class="flex flex-wrap gap-6">
+            <!-- Matrice A -->
+            <div class="p-4 border rounded-xl shadow-md w-full md:w-5/12 bg-blue-50">
+                <h3 class="font-bold text-xl mb-3 text-blue-800">Matrice A</h3>
+                <label class="block mb-2 text-sm font-medium text-gray-700">Dimensions (Lignes x Colonnes)</label>
+                <div class="flex space-x-2">
+                    <input type="number" id="rows-a" value="2" min="1" max="10" class="matrix-input w-16 h-10 px-2 py-1" onchange="generateMatrixInputs('A')" onkeyup="generateMatrixInputs('A')">
+                    <span class="text-xl font-bold">x</span>
+                    <input type="number" id="cols-a" value="2" min="1" max="10" class="matrix-input w-16 h-10 px-2 py-1" onchange="generateMatrixInputs('A')" onkeyup="generateMatrixInputs('A')">
+                </div>
+                <div id="matrix-a-container" class="mt-4 p-2 bg-white rounded-lg border"></div>
+            </div>
+
+            <!-- Matrice B -->
+            <div class="p-4 border rounded-xl shadow-md w-full md:w-5/12 bg-green-50">
+                <h3 class="font-bold text-xl mb-3 text-green-800">Matrice B</h3>
+                <label class="block mb-2 text-sm font-medium text-gray-700">Dimensions (Lignes x Colonnes)</label>
+                <div class="flex space-x-2">
+                    <input type="number" id="rows-b" value="2" min="1" max="10" class="matrix-input w-16 h-10 px-2 py-1" onchange="generateMatrixInputs('B')" onkeyup="generateMatrixInputs('B')">
+                    <span class="text-xl font-bold">x</span>
+                    <input type="number" id="cols-b" value="2" min="1" max="10" class="matrix-input w-16 h-10 px-2 py-1" onchange="generateMatrixInputs('B')" onkeyup="generateMatrixInputs('B')">
+                </div>
+                <div id="matrix-b-container" class="mt-4 p-2 bg-white rounded-lg border"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Opérations -->
+    <section id="operations" class="space-y-4">
+        <h2 class="text-2xl font-semibold text-gray-800 border-b pb-2">Choisir une Opération</h2>
+        <div class="flex flex-wrap gap-3">
+            <button onclick="performOperation('add')" class="op-btn bg-blue-500 hover:bg-blue-600">A + B (Addition)</button>
+            <button onclick="performOperation('subtract')" class="op-btn bg-blue-500 hover:bg-blue-600">A - B (Soustraction)</button>
+            <button onclick="performOperation('multiply')" class="op-btn bg-green-500 hover:bg-green-600">A x B (Multiplication)</button>
+            <button onclick="performOperation('determinant-a')" class="op-btn bg-purple-500 hover:bg-purple-600">Dét. (Matrice A)</button>
+            <button onclick="performOperation('transpose-a')" class="op-btn bg-yellow-500 hover:bg-yellow-600">Aᵗ (Transposée A)</button>
+        </div>
+    </section>
+
+    <!-- Résultats -->
+    <section id="results" class="space-y-4">
+        <h2 class="text-2xl font-semibold text-gray-800 border-b pb-2">Résultat</h2>
+        <div id="result-container" class="bg-gray-100 p-4 rounded-xl shadow-inner min-h-[100px]">
+            <p class="text-gray-500">Le résultat de l'opération s'affichera ici.</p>
+        </div>
+    </section>
+</div>
+
+<!-- Script principal -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // --- Récupération des variables d'environnement globales ---
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+    // --- Initialisation de Firebase ---
+    let app, db, auth;
+    let userId = null;
+
+    try {
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+    } catch (error) {
+        console.error("Erreur d'initialisation de Firebase:", error);
+        document.getElementById('auth-error-message').textContent = "Erreur de configuration Firebase. Consultez la console.";
+        document.getElementById('auth-error-message').classList.remove('hidden');
+    }
+
+    const provider = new GoogleAuthProvider();
+
+    // --- Éléments du DOM ---
+    const loadingScreen = document.getElementById('loading-screen');
+    const loginScreen = document.getElementById('login-screen');
+    const appScreen = document.getElementById('app-screen');
+    const signInBtn = document.getElementById('google-signin-btn');
+    const signOutBtn = document.getElementById('signout-btn');
+    const userInfoText = document.getElementById('user-info');
+    const authError = document.getElementById('auth-error-message');
+
+    // --- Fonctions Firestore pour la gestion des utilisateurs ---
+
+    /**
+     * Enregistre ou met à jour les données de l'utilisateur dans la base de données publique.
+     * @param {Object} user L'objet utilisateur de Firebase.
+     */
+    async function registerUser(user) {
+        const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid);
+
+        // Les informations sont stockées dans une collection publique
+        // afin que l'administrateur (vous) puisse faire l'inventaire.
+        try {
+            const docSnap = await getDoc(userRef);
+
+            if (docSnap.exists()) {
+                // Si l'utilisateur existe déjà, mettez à jour la dernière connexion
+                await updateDoc(userRef, {
+                    lastLogin: new Date().toISOString(),
+                });
+            } else {
+                // Nouvel utilisateur, créez le document
+                await setDoc(userRef, {
+                    uid: user.uid,
+                    email: user.email,
+                    displayName: user.displayName,
+                    photoURL: user.photoURL,
+                    createdAt: new Date().toISOString(),
+                    lastLogin: new Date().toISOString(),
+                });
+            }
+            console.log("Informations utilisateur enregistrées/mises à jour dans Firestore.");
+        } catch (e) {
+            console.error("Erreur lors de l'enregistrement de l'utilisateur dans Firestore:", e);
+        }
+    }
+
+
+    // --- Logique d'Authentification ---
+
+    signInBtn.addEventListener('click', async () => {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            // Le onAuthStateChanged ci-dessous gérera la transition vers l'application.
+        } catch (error) {
+            authError.textContent = `Erreur de connexion: ${error.message}`;
+            authError.classList.remove('hidden');
+            console.error("Erreur d'authentification Google:", error);
+        }
+    });
+
+    signOutBtn.addEventListener('click', async () => {
+        await signOut(auth);
+    });
+
+    // Gestion de l'état d'authentification
+    onAuthStateChanged(auth, async (user) => {
+        loadingScreen.classList.add('hidden');
+
+        if (user) {
+            // Utilisateur connecté
+            userId = user.uid;
+            loginScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            userInfoText.textContent = `Connecté comme: ${user.email} (ID: ${user.uid.substring(0, 8)}...)`;
+            userInfoText.classList.remove('hidden');
+
+            // Enregistrer l'utilisateur dans la DB
+            await registerUser(user);
+
+            // Initialiser les matrices
+            generateMatrixInputs('A');
+            generateMatrixInputs('B');
+
+        } else {
+            // Utilisateur déconnecté
+            userId = null;
+            appScreen.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            userInfoText.classList.add('hidden');
+
+            // Tenter une connexion silencieuse avec le token fourni par l'environnement
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                try {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } catch (e) {
+                    console.log("Token initial non valide, connexion anonyme tentée.");
+                    await signInAnonymously(auth); // Fallback pour s'assurer d'avoir un UID
+                }
+            } else {
+                await signInAnonymously(auth); // Connexion anonyme si aucun token
+            }
+        }
+    });
+
+
+    // --- Logique du Calculateur de Matrices ---
+
+    /**
+     * Génère dynamiquement les champs d'entrée pour une matrice donnée (A ou B).
+     * @param {string} matrixName 'A' ou 'B'.
+     */
+    function generateMatrixInputs(matrixName) {
+        const container = document.getElementById(`matrix-${matrixName.toLowerCase()}-container`);
+        const rowsInput = document.getElementById(`rows-${matrixName.toLowerCase()}`);
+        const colsInput = document.getElementById(`cols-${matrixName.toLowerCase()}`);
+
+        const rows = parseInt(rowsInput.value) || 1;
+        const cols = parseInt(colsInput.value) || 1;
+
+        container.innerHTML = '';
+        container.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+        container.classList.add('matrix-grid');
+
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = Math.floor(Math.random() * 5); // Valeurs par défaut pour la démo
+                input.className = 'matrix-input rounded-md text-sm';
+                input.id = `${matrixName.toLowerCase()}-${r}-${c}`;
+                container.appendChild(input);
+            }
+        }
+    }
+
+    /**
+     * Lit les valeurs du DOM et retourne la matrice sous forme de tableau 2D.
+     * @param {string} matrixName 'A' ou 'B'.
+     * @returns {number[][] | null} La matrice ou null en cas d'erreur.
+     */
+    function getMatrixFromInputs(matrixName) {
+        const rowsInput = document.getElementById(`rows-${matrixName.toLowerCase()}`);
+        const colsInput = document.getElementById(`cols-${matrixName.toLowerCase()}`);
+
+        const R = parseInt(rowsInput.value);
+        const C = parseInt(colsInput.value);
+
+        if (R <= 0 || C <= 0) return null;
+
+        const matrix = [];
+        for (let r = 0; r < R; r++) {
+            const row = [];
+            for (let c = 0; c < C; c++) {
+                const input = document.getElementById(`${matrixName.toLowerCase()}-${r}-${c}`);
+                const value = parseFloat(input.value) || 0; // Utiliser 0 si l'entrée est vide/non-numérique
+                row.push(value);
+            }
+            matrix.push(row);
+        }
+        return matrix;
+    }
+
+    /**
+     * Affiche une matrice ou un scalaire dans le conteneur de résultats.
+     * @param {number[][] | number | string} result Le résultat à afficher.
+     * @param {string} operationName Le nom de l'opération.
+     */
+    function displayResult(result, operationName) {
+        const container = document.getElementById('result-container');
+        let html = `<h3 class="text-xl font-bold mb-3 text-blue-700">Opération: ${operationName}</h3>`;
+
+        if (typeof result === 'string') {
+            html += `<p class="text-red-600 font-medium">${result}</p>`;
+        } else if (typeof result === 'number') {
+            // Affichage d'un scalaire (Déterminant)
+            html += `<div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                            <p class="text-2xl font-extrabold text-center text-gray-800">D = ${result.toFixed(4)}</p>
+                        </div>`;
+        } else if (Array.isArray(result) && Array.isArray(result[0])) {
+            // Affichage d'une matrice
+            const rows = result.length;
+            const cols = result[0].length;
+
+            html += `<div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
+                                <tbody class="bg-white divide-y divide-gray-200">`;
+
+            result.forEach(row => {
+                html += `<tr>`;
+                row.forEach(val => {
+                    html += `<td class="px-4 py-2 whitespace-nowrap text-center text-sm font-medium text-gray-900 border-r border-gray-100">${val.toFixed(2)}</td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table></div>`;
+        } else {
+            html += `<p class="text-red-600">Erreur: Résultat inattendu.</p>`;
+        }
+
+        container.innerHTML = html;
+    }
+
+
+    // --- Fonctions de Calculs Matriciels ---
+
+    /**
+     * Calcule la matrice C = A + B ou C = A - B.
+     * @param {number[][]} A Matrice A.
+     * @param {number[][]} B Matrice B.
+     * @param {string} operator 'add' ou 'subtract'.
+     * @returns {number[][] | string} Matrice C ou message d'erreur.
+     */
+    function matrixAddSubtract(A, B, operator) {
+        const R_A = A.length, C_A = A[0].length;
+        const R_B = B.length, C_B = B[0].length;
+
+        if (R_A !== R_B || C_A !== C_B) {
+            return "Erreur: Les matrices doivent avoir les mêmes dimensions pour l'addition/soustraction.";
+        }
+
+        const C = [];
+        const op = operator === 'add' ? (a, b) => a + b : (a, b) => a - b;
+
+        for (let r = 0; r < R_A; r++) {
+            const row = [];
+            for (let c = 0; c < C_A; c++) {
+                row.push(op(A[r][c], B[r][c]));
+            }
+            C.push(row);
+        }
+        return C;
+    }
+
+    /**
+     * Calcule la matrice C = A x B.
+     * @param {number[][]} A Matrice A.
+     * @param {number[][]} B Matrice B.
+     * @returns {number[][] | string} Matrice C ou message d'erreur.
+     */
+    function matrixMultiply(A, B) {
+        const R_A = A.length, C_A = A[0].length;
+        const R_B = B.length, C_B = B[0].length;
+
+        if (C_A !== R_B) {
+            return "Erreur: Le nombre de colonnes de A doit être égal au nombre de lignes de B pour la multiplication.";
+        }
+
+        const C = Array(R_A).fill(0).map(() => Array(C_B).fill(0));
+
+        for (let r = 0; r < R_A; r++) { // Lignes de A
+            for (let c = 0; c < C_B; c++) { // Colonnes de B
+                let sum = 0;
+                for (let k = 0; k < C_A; k++) { // Multiplier et additionner
+                    sum += A[r][k] * B[k][c];
+                }
+                C[r][c] = sum;
+            }
+        }
+        return C;
+    }
+
+    /**
+     * Calcule le déterminant d'une matrice carrée (méthode de cofacteur/récursive).
+     * @param {number[][]} M Matrice carrée.
+     * @returns {number | string} Déterminant ou message d'erreur.
+     */
+    function matrixDeterminant(M) {
+        const N = M.length;
+        if (N === 0) return 0;
+        if (N !== M[0].length) {
+            return "Erreur: Le déterminant n'est défini que pour les matrices carrées.";
+        }
+
+        if (N === 1) {
+            return M[0][0];
+        }
+        if (N === 2) {
+            return M[0][0] * M[1][1] - M[0][1] * M[1][0];
+        }
+
+        let det = 0;
+        for (let c = 0; c < N; c++) {
+            // Crée la sous-matrice (M_1c)
+            const subMatrix = M.slice(1).map(row => row.filter((_, idx) => idx !== c));
+
+            // Calcul récursif: det = sum( (-1)^(r+c) * M[r][c] * det(M_rc) )
+            const cofactor = (c % 2 === 0 ? 1 : -1) * M[0][c];
+            const subDet = matrixDeterminant(subMatrix);
+
+            // Assurez-vous que subDet est un nombre
+            if (typeof subDet !== 'number') return subDet;
+
+            det += cofactor * subDet;
+        }
+        return det;
+    }
+
+    /**
+     * Calcule la transposée d'une matrice A.
+     * @param {number[][]} A Matrice.
+     * @returns {number[][]} Matrice transposée.
+     */
+    function matrixTranspose(A) {
+        if (A.length === 0) return [];
+        const R = A.length;
+        const C = A[0].length;
+
+        // La matrice transposée aura C lignes et R colonnes
+        const T = Array(C).fill(0).map(() => Array(R).fill(0));
+
+        for (let r = 0; r < R; r++) {
+            for (let c = 0; c < C; c++) {
+                T[c][r] = A[r][c];
+            }
+        }
+        return T;
+    }
+
+
+    /**
+     * Gère l'exécution des opérations au clic.
+     * @param {string} operationType Le type d'opération à effectuer.
+     */
+    function performOperation(operationType) {
+        const A = getMatrixFromInputs('A');
+        const B = getMatrixFromInputs('B');
+        let result = "Opération non reconnue.";
+        let name = operationType;
+
+        if (!A || !B) {
+            displayResult("Veuillez définir des dimensions valides (R > 0, C > 0) pour les deux matrices.", "Erreur de configuration");
+            return;
+        }
+
+        try {
+            switch (operationType) {
+                case 'add':
+                    result = matrixAddSubtract(A, B, 'add');
+                    name = "A + B";
+                    break;
+                case 'subtract':
+                    result = matrixAddSubtract(A, B, 'subtract');
+                    name = "A - B";
+                    break;
+                case 'multiply':
+                    result = matrixMultiply(A, B);
+                    name = "A x B";
+                    break;
+                case 'determinant-a':
+                    result = matrixDeterminant(A);
+                    name = "Déterminant de A";
+                    break;
+                case 'transpose-a':
+                    result = matrixTranspose(A);
+                    name = "Transposée de A (Aᵗ)";
+                    break;
+                default:
+                    // 'result' est déjà initialisé
+                    break;
+            }
+
+            displayResult(result, name);
+
+        } catch (e) {
+            console.error("Erreur de calcul:", e);
+            displayResult(`Une erreur inattendue est survenue lors du calcul: ${e.message}`, "Erreur Critique");
+        }
+    }
+
+    // --- Initialisation au chargement de la page ---
+    window.onload = () => {
+        // S'assure que l'UI est prête et les matrices initialisées
+        // Le onAuthStateChanged gère la visibilité après l'auth.
+        generateMatrixInputs('A');
+        generateMatrixInputs('B');
+
+        // Expose la fonction au scope global pour les boutons HTML
+        window.generateMatrixInputs = generateMatrixInputs;
+        window.performOperation = performOperation;
+    };
+
+</script>
+</body>
+</html>
